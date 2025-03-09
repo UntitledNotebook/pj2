@@ -1,9 +1,9 @@
 {
-    "name": "ResNet",
-    "n_gpu": 0,
+    "name": "CIFAR10_4x_DLA60x",
+    "n_gpu": 1,
 
     "arch": {
-        "type": "dla60x_c",
+        "type": "dla60x_c_new",
         "args": {
             "pool_size": 4,
             "num_classes": 10
@@ -114,6 +114,6 @@
         "monitor": "max val_accuracy",
         "early_stop": 100,
 
-        "tensorboard": false
+        "tensorboard": true
     }
 }

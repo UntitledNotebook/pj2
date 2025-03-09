@@ -4,4 +4,4 @@ from base import BaseModel
 
 
 from .resnet import resnet18
-from .dla import dla60x_c
+from .dla import dla60x_c, dla60x_c_new

@@ -2,7 +2,8 @@ import numpy as np
 import torch
 from torchvision.utils import make_grid
 from base import BaseTrainer
-from utils import inf_loop, MetricTracker
+from utils import inf_loop, MetricTracker, mixup_data
+from torch.amp import autocast, GradScaler
 
 
 class Trainer(BaseTrainer):
@@ -30,6 +31,10 @@ class Trainer(BaseTrainer):
         self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
 
+        # Mixed Precision Setup
+        if self.config["mix_precision"]:
+            self.scaler = GradScaler()
+
     def _train_epoch(self, epoch):
         """
         Training logic for an epoch
@@ -42,11 +47,29 @@ class Trainer(BaseTrainer):
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
             data, target = data.to(self.device), target.to(self.device)
 
+            # Apply MixUp if enabled
+            if self.config["mixup"]:
+                data, target, _ = mixup_data(data, target)
+
             self.optimizer.zero_grad()
-            output = self.model(data)
-            loss = self.criterion(output, target)
-            loss.backward()
-            self.optimizer.step()
+
+            # Use mixed precision if enabled
+            if self.config["mix_precision"]:
+                with autocast():  # Automatically uses FP16 where possible
+                    output = self.model(data)
+                    loss = self.criterion(output, target)
+            else:
+                output = self.model(data)
+                loss = self.criterion(output, target)
+
+            # Backward pass with gradient scaling if using mixed precision
+            if self.config["mix_precision"]:
+                self.scaler.scale(loss).backward()  # Scales the loss for stable gradients
+                self.scaler.step(self.optimizer)
+                self.scaler.update()  # Updates the scale for next iteration
+            else:
+                loss.backward()
+                self.optimizer.step()
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update('loss', loss.item())
@@ -70,6 +93,7 @@ class Trainer(BaseTrainer):
 
         if self.lr_scheduler is not None:
             self.lr_scheduler.step()
+            log.update({'lr': self.optimizer.param_groups[0]['lr']})
         return log
 
     def _valid_epoch(self, epoch):
@@ -94,7 +118,7 @@ class Trainer(BaseTrainer):
                     self.valid_metrics.update(met.__name__, met(output, target))
                 self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
 
-        # add histogram of model parameters to the tensorboard
+        # Add histogram of model parameters to the tensorboard
         for name, p in self.model.named_parameters():
             self.writer.add_histogram(name, p, bins='auto')
         return self.valid_metrics.result()

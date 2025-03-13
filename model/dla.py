@@ -333,7 +333,7 @@ def get_model_storage_size(model):
     buffer = io.BytesIO()
     
     # Save the model's state dict to the buffer (without saving to disk)
-    torch.save(model.state_dict(), buffer)
+    torch.save(model, buffer)
     
     # Get the size of the buffer in bytes and convert to MB
     buffer_size = buffer.tell()  # in bytes

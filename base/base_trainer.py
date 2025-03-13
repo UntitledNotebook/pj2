@@ -2,6 +2,7 @@ import torch
 from abc import abstractmethod
 from numpy import inf
 from logger import TensorboardWriter
+import os
 
 
 class BaseTrainer:
@@ -118,11 +119,19 @@ class BaseTrainer:
         }
         filename = str(self.checkpoint_dir / 'checkpoint-epoch{}.pth'.format(epoch))
         torch.save(state, filename)
+        # Remove previous checkpoints that are not saved as best
+        if epoch > self.save_period:
+            prev_checkpoint_path = str(self.checkpoint_dir / f'checkpoint-epoch{epoch-self.save_period}.pth')
+            if os.path.exists(prev_checkpoint_path):
+                os.remove(prev_checkpoint_path)
+                self.logger.info(f"Removed previous checkpoint: {prev_checkpoint_path}")
         self.logger.info("Saving checkpoint: {} ...".format(filename))
         if save_best:
             best_path = str(self.checkpoint_dir / 'model_best.pth')
             torch.save(state, best_path)
-            self.logger.info("Saving current best: model_best.pth ...")
+            best_path = str(self.checkpoint_dir / 'net_best.pth')
+            torch.save(self.model, best_path)
+            self.logger.info("Saving current best: model_best.pth, net_best.pth ...")
 
     def _resume_checkpoint(self, resume_path):
         """

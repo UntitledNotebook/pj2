@@ -1,0 +1,109 @@
+{
+    "name": "DenseNet",
+    "n_gpu": 1,
+
+    "model": "densenet",
+
+    "train_data_loader": {
+        "type": "CIFAR10_4x_DataLoader",
+        "args":{
+            "root": "data/",
+            "split": "train",
+            "batch_size": 32,
+            "shuffle": true,
+            "num_workers": 2
+        }
+    },
+    "valid_data_loader": {
+        "type": "CIFAR10_4x_DataLoader",
+        "args":{
+            "root": "data/",
+            "split": "valid",
+            "batch_size": 128,
+            "shuffle": false,
+            "num_workers": 2
+        }
+    },
+    "optimizer": {
+        "type": "SGD",
+        "args":{
+            "lr": 0.1,
+            "momentum": 0.9,
+            "weight_decay": 1e-4
+        }
+    },
+    "loss": {
+        "type": "CrossEntropyLoss",
+        "args": {
+            "label_smoothing": 0.1
+        }
+    },
+    "metrics": [
+        "accuracy"
+    ],
+    "lr_scheduler": {
+        "type": "CosineAnnealingWarmRestarts",
+        "args": {
+            "T_0": 20,
+            "T_mult": 2,
+            "eta_min": 1e-4
+        }
+    },
+    "train_transform": [
+        {
+            "type": "RandomResizedCrop",
+            "args": {
+                "size": 128,
+                "scale": [0.08, 1.0],
+                "ratio": [0.75, 1.33]
+            }
+        },
+        {
+            "type": "RandomHorizontalFlip",
+            "args": {
+                "p": 0.2
+            }
+        },
+        {
+            "type": "ColorJitter",
+            "args": {
+                "brightness": 0.4,
+                "contrast": 0.4,
+                "saturation": 0.4,
+                "hue": 0.1
+            }
+        },
+        {
+            "type": "RandomErasing",
+            "args": {
+                "p": 0.2,
+                "scale": [0.02, 0.33],
+                "ratio": [0.3, 3.3]
+            }
+        },
+        {
+            "type": "AutoAugment"
+        },
+        {
+            "type": "RandomRotation",
+            "args": {
+                "degrees": 5
+            }
+        }
+    ],
+    "valid_transform": [],
+    "mixup": true,
+    "mix_precision": true,
+    "trainer": {
+        "epochs": 300,
+
+        "save_dir": "saved/",
+        "save_period": 1,
+        "verbosity": 2,
+        
+        "monitor": "max val_accuracy",
+        "early_stop": 300,
+
+        "tensorboard": false
+    }
+}

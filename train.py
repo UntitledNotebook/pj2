@@ -23,19 +23,15 @@ def main(config: ConfigParser):
     logger = config.get_logger('train')
 
     # Dynamically build the transformations based on config
-    train_transform = module_transform.Compose(
-        [getattr(module_transform, transform['type'])(**transform['args']) 
-         for transform in config['train_transform']])
-    valid_transform = module_transform.Compose(
-        [getattr(module_transform, transform['type'])(**transform['args']) 
-         for transform in config['valid_transform']])
+    train_transform = module_transform.create_transfrom(config['train_transform'])
+    valid_transform = module_transform.create_transfrom(config['valid_transform'])
 
     # setup data_loader instances
     train_data_loader = config.init_obj('train_data_loader', module_data, transform=train_transform)
     valid_data_loader = config.init_obj('valid_data_loader', module_data, transform=valid_transform)
 
     # build model architecture, then print to console
-    model = config.init_ftn('arch', module_arch)()
+    model = module_arch.create_model(config)
     logger.info(model)
 
     # Get and log model storage size
@@ -49,10 +45,10 @@ def main(config: ConfigParser):
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
     # get function handles of metrics
-    criterion = config.init_obj('loss', module_loss)
+    criterion = module_loss.create_criterion(config['loss'])
     metrics = [getattr(module_metric, met) for met in config['metrics']]
 
-    # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
+    # build optimizer, learning rate scheduler.
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = config.init_obj('optimizer', torch.optim, trainable_params)
     lr_scheduler = config.init_obj('lr_scheduler', torch.optim.lr_scheduler, optimizer)

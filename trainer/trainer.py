@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torchvision.utils import make_grid
 from base import BaseTrainer
-from utils import inf_loop, MetricTracker, mixup_data
+from utils import inf_loop, MetricTracker, Mixup
 from torch.amp import autocast, GradScaler
 
 
@@ -35,6 +35,9 @@ class Trainer(BaseTrainer):
         if self.config["mix_precision"]:
             self.scaler = GradScaler()
 
+        if self.config['mixup']:
+            self.mixup = Mixup()
+
     def _train_epoch(self, epoch):
         """
         Training logic for an epoch
@@ -49,13 +52,14 @@ class Trainer(BaseTrainer):
 
             # Apply MixUp if enabled
             if self.config["mixup"]:
-                data, target, _ = mixup_data(data, target)
+                old_target = target
+                data, target = self.mixup(data, target)
 
             self.optimizer.zero_grad()
 
             # Use mixed precision if enabled
             if self.config["mix_precision"]:
-                with autocast():  # Automatically uses FP16 where possible
+                with autocast(device_type=self.device.type):  # Automatically uses FP16 where possible
                     output = self.model(data)
                     loss = self.criterion(output, target)
             else:
@@ -70,6 +74,9 @@ class Trainer(BaseTrainer):
             else:
                 loss.backward()
                 self.optimizer.step()
+
+            if self.config["mixup"]:
+                target = old_target
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update('loss', loss.item())

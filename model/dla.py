@@ -317,14 +317,14 @@ def dla60x_c(**kwargs):  # DLA-X-60-C
     BottleneckX.expansion = 2
     model = DLA(levels=[1, 1, 1, 2, 3, 1],
                 channels=[16, 32, 64, 64, 128, 256],
-                block=BottleneckX, **kwargs)
+                block=BottleneckX, num_classes=10, pool_size=4)
     return model
 
 def dla60x_c_new(**kwargs):
     BottleneckX.expansion = 2
     model = DLA(levels=[1, 1, 1, 2, 3, 1],
                 channels=[16, 32, 64, 128, 256, 512],
-                block=BottleneckX, **kwargs)
+                block=BottleneckX, num_classes=10, pool_size=4)
     return model
 
 def get_model_storage_size(model):
@@ -341,7 +341,7 @@ def get_model_storage_size(model):
     return storage_size_mb
 
 def test():
-    net = dla60x_c_new(num_classes=10, pool_size=4)
+    net = dla60x_c_new()
     x = torch.randn(1, 3, 128, 128)
     y = net(x)
     print(net)

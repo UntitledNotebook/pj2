@@ -141,7 +141,7 @@ class ResNet(nn.Module):
         self,
         block: str,
         layers: List[int],
-        num_classes: int = 1000,
+        num_classes: int = 10,
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
@@ -180,7 +180,7 @@ class ResNet(nn.Module):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2, dilate=replace_stride_with_dilation[0])
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilate=replace_stride_with_dilation[1])
+        self.layer3 = self._make_layer(block, 240, layers[2], stride=2, dilate=replace_stride_with_dilation[1])
         self.layer4 = self._make_layer(block, 256, layers[3], stride=2, dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(256 * block.expansion, num_classes)
@@ -266,3 +266,30 @@ class ResNet(nn.Module):
     
 def resnet18(**kwargs: Any) -> ResNet:
     return ResNet(block="BasicBlock", layers=[2, 2, 2, 2], **kwargs)
+
+import io
+
+def get_model_storage_size(model):
+    """Returns the storage size of the model in MB."""
+    # Create a buffer to save the model to
+    buffer = io.BytesIO()
+    
+    # Save the model's state dict to the buffer (without saving to disk)
+    torch.save(model, buffer)
+    
+    # Get the size of the buffer in bytes and convert to MB
+    buffer_size = buffer.tell()  # in bytes
+    storage_size_mb = buffer_size / (1024 * 1024)  # convert to MB
+    return storage_size_mb
+
+
+def test():
+    net = resnet18()
+    x = torch.randn(2, 3, 128, 128)
+    y = net(x)
+    print(y.shape)
+    print(net)
+    print(get_model_storage_size(net))
+
+if __name__ == '__main__':
+    test()

@@ -93,8 +93,8 @@
         }
     ],
     "valid_transform": [],
-    "mixup": true,
-    "mix_precision": true,
+    "mixup": false,
+    "mix_precision": false,
     "trainer": {
         "epochs": 300,
 

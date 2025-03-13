@@ -7,6 +7,7 @@ from .resnet import resnet18
 from .dla import dla60x_c, dla60x_c_new
 from .efficientnet import effnetv2_s
 from .densenet import densenet_cifar
+import torch
 
 def create_model(config):
     model = config['model']
@@ -22,4 +23,7 @@ def create_model(config):
         model = densenet_cifar()
     else:
         raise NotImplementedError
+    if config['weights']:
+        state = torch.load(config['weights'])
+        model.load_state_dict(state['state_dict'])
     return model

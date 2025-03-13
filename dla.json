@@ -51,45 +51,8 @@
     },
     "train_transform": [
         {
-            "type": "RandomResizedCrop",
-            "args": {
-                "size": 128,
-                "scale": [0.08, 1.0],
-                "ratio": [0.75, 1.33]
-            }
-        },
-        {
-            "type": "RandomHorizontalFlip",
-            "args": {
-                "p": 0.2
-            }
-        },
-        {
-            "type": "ColorJitter",
-            "args": {
-                "brightness": 0.2,
-                "contrast": 0.2,
-                "saturation": 0.2,
-                "hue": 0.05
-            }
-        },
-        {
-            "type": "RandomErasing",
-            "args": {
-                "p": 0.1,
-                "scale": [0.02, 0.33],
-                "ratio": [0.3, 3.3]
-            }
-        },
-        {
             "type": "AutoAugment",
             "args": {}
-        },
-        {
-            "type": "RandomRotation",
-            "args": {
-                "degrees": 5
-            }
         }
     ],
     "valid_transform": [],

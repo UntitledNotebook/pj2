@@ -4,7 +4,7 @@ from torchvision.utils import make_grid
 from base import BaseTrainer
 from utils import inf_loop, MetricTracker, Mixup
 from torch.amp import autocast, GradScaler
-
+import csv
 
 class Trainer(BaseTrainer):
     """
@@ -23,6 +23,12 @@ class Trainer(BaseTrainer):
             # iteration-based training
             self.train_data_loader = inf_loop(train_data_loader)
             self.len_epoch = len_epoch
+
+        if config['csv']:
+            csv_path = self.checkpoint_dir + '/log.csv'
+            self.csv_logger = csv.writer(open(csv_path, 'w'))
+            self.csv_logger.writerow(['batch_idx', 'loss', 'acc', 'lr'])
+
         self.valid_data_loader = valid_data_loader
         self.do_validation = self.valid_data_loader is not None
         self.lr_scheduler = lr_scheduler
@@ -69,10 +75,15 @@ class Trainer(BaseTrainer):
             # Backward pass with gradient scaling if using mixed precision
             if self.config["mix_precision"]:
                 self.scaler.scale(loss).backward()  # Scales the loss for stable gradients
+                if self.config["gradient_clipping"]:
+                    self.scaler.unscale_(self.optimizer)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config["gradient_clipping"])
                 self.scaler.step(self.optimizer)
                 self.scaler.update()  # Updates the scale for next iteration
             else:
                 loss.backward()
+                if self.config["gradient_clipping"]:
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config["gradient_clipping"])
                 self.optimizer.step()
 
             if self.config["mixup"]:
@@ -81,7 +92,16 @@ class Trainer(BaseTrainer):
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update('loss', loss.item())
             for met in self.metric_ftns:
-                self.train_metrics.update(met.__name__, met(output, target))
+                result = met(output, target)
+                if (self.config['csv']):
+                    self.csv_logger.writerow([(epoch - 1) * self.len_epoch + batch_idx, 
+                                              loss.item(), 
+                                              result, 
+                                              self.optimizer.param_groups[0]['lr']])
+                    # Flush the CSV file to ensure data is written to disk
+                    if hasattr(self.csv_logger, 'file'):
+                        self.csv_logger.file.flush()
+                self.train_metrics.update(met.__name__, result)
 
             if batch_idx % self.log_step == 0:
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(

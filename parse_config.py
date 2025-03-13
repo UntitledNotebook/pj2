@@ -114,22 +114,6 @@ class ConfigParser:
         
         return T.Compose(transform_ops)
 
-    def get_train_transform(self) -> T.Compose:
-        """
-        Parse and return the training transforms defined in the config.
-
-        :return: The parsed training transform (a T.Compose object).
-        """
-        return self.parse_transforms(self.config['train_transform'])
-
-    def get_valid_transform(self) -> T.Compose:
-        """
-        Parse and return the validation transforms defined in the config.
-
-        :return: The parsed validation transform (a T.Compose object).
-        """
-        return self.parse_transforms(self.config['valid_transform'])
-
     def init_obj(self, 
                  name: str, 
                  module: Any, 
